@@ -208,3 +208,16 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.11+ + FastAPI, uvicorn, supabase-py, python-dotenv, pydantic v2 (001-fastapi-backend)
+- Supabase (PostgreSQL) — 5 tables: chapters, quizzes, users, progress, llm_costs (001-fastapi-backend)
+- Python 3.11+ + supabase-py, python-dotenv (already in requirements.txt) (002-content-seeding)
+- Supabase (PostgreSQL) — `chapters` and `quizzes` tables (002-content-seeding)
+- YAML 1.2, Markdown — config files only, no programming language + OpenAI ChatGPT platform (custom GPT + Actions); Phase 1 FastAPI backend on Railway (003-chatgpt-app)
+- N/A — reads/writes go through the existing backend (003-chatgpt-app)
+- TypeScript 5 / Next.js 14 (App Router) + `next@14`, `react@18`, `@supabase/supabase-js`, `@supabase/ssr`, `tailwindcss@3`, `react-markdown` (chapter content rendering) (004-nextjs-web-app)
+- Supabase PostgreSQL — accessed only through FastAPI backend on Railway (no direct DB calls from frontend) (004-nextjs-web-app)
+
+## Recent Changes
+- 001-fastapi-backend: Added Python 3.11+ + FastAPI, uvicorn, supabase-py, python-dotenv, pydantic v2

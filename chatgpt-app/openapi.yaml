@@ -1,0 +1,390 @@
+openapi: "3.1.0"
+
+info:
+  title: "Course Companion API"
+  version: "1.0.0"
+  description: >
+    Backend API for the Course Companion Agentic AI course.
+    Provides chapter content, quiz administration, progress tracking, and access control.
+    All protected endpoints require Authorization: Bearer <JWT> header.
+
+servers:
+  - url: "https://course-companion.railway.app"
+    description: "Production (Railway)"
+
+paths:
+
+  # ── US1: Teaching Flow ────────────────────────────────────────────────────
+
+  /search:
+    get:
+      operationId: searchChapters
+      summary: "Search course chapters by keyword"
+      description: >
+        Search for chapters relevant to a topic keyword. Call this FIRST before
+        teaching anything — never teach from general knowledge without fetching
+        chapter content. Returns up to 5 results ranked by relevance.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          description: "Topic keyword to search for (1-3 words works best)"
+      responses:
+        "200":
+          description: "List of matching chapters (may be empty if topic not in course)"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChapterSummary"
+        "400":
+          description: "Missing or empty search query"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /access/check:
+    get:
+      operationId: checkAccess
+      summary: "Check if the student can access a chapter"
+      description: >
+        Check whether the authenticated student's subscription tier allows access
+        to a specific chapter. ALWAYS call this before calling getChapter.
+        If allowed is false, follow the Access Control section in your instructions
+        and do NOT call getChapter.
+      parameters:
+        - name: chapter_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: "The chapter ID to check access for"
+      responses:
+        "200":
+          description: "Access check result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessResult"
+
+  /chapters/{id}:
+    get:
+      operationId: getChapter
+      summary: "Fetch full chapter content for teaching"
+      description: >
+        Fetch the complete content of a chapter to teach the student.
+        Only call this AFTER checkAccess confirms allowed: true.
+        Use the content field to explain the topic — do not add information
+        from outside this content.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "Chapter ID (1–10)"
+      responses:
+        "200":
+          description: "Full chapter with content"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChapterFull"
+        "403":
+          description: "Student's tier does not allow access to this chapter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TierErrorResponse"
+        "404":
+          description: "Chapter not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── US2: Quiz Flow ─────────────────────────────────────────────────────────
+
+  /quizzes/{chapter_id}:
+    get:
+      operationId: getQuizQuestions
+      summary: "Fetch all 5 quiz questions for a chapter"
+      description: >
+        Fetch the 5 quiz questions for a chapter. Store them all internally but
+        present them to the student ONE AT A TIME — never show all 5 at once.
+        The correct_answer field is never returned by this endpoint.
+      parameters:
+        - name: chapter_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "Chapter ID whose questions to fetch"
+      responses:
+        "200":
+          description: "List of 5 quiz questions (no correct_answer field)"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizQuestion"
+        "404":
+          description: "Chapter not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quizzes/{quiz_id}/submit:
+    post:
+      operationId: submitQuizAnswer
+      summary: "Submit the student's answer to a quiz question"
+      description: >
+        Submit the student's answer for a single question. Call this after every
+        student answer — do not score answers yourself. The backend determines
+        correctness. After the 5th question, the response includes a score field
+        with the final percentage.
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "The question ID from the QuizQuestion object"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  description: "The student's UUID — required to save progress"
+                answer:
+                  type: string
+                  enum: [A, B, C, D]
+                  description: "The student's chosen answer option"
+              required: [user_id, answer]
+      responses:
+        "200":
+          description: "Answer result with explanation. score included on 5th question."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmitResult"
+        "400":
+          description: "Invalid answer (not A/B/C/D)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Quiz question not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── US3: Progress Flow ─────────────────────────────────────────────────────
+
+  /progress/{user_id}:
+    get:
+      operationId: getProgress
+      summary: "Fetch the student's full progress record"
+      description: >
+        Fetch a student's complete learning progress: chapters completed, scores,
+        streak, and average. Use this when the student asks how they are doing.
+        Always fetch live data — do not estimate from memory.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "The student's UUID from their account"
+      responses:
+        "200":
+          description: "Complete progress record"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressRecord"
+        "404":
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    ChapterSummary:
+      type: object
+      description: "A chapter summary returned by search — no content field."
+      properties:
+        id:
+          type: integer
+          description: "Unique chapter ID (1–10)"
+        title:
+          type: string
+          description: "Chapter title"
+        excerpt:
+          type: string
+          description: "Short snippet around the search match"
+        tier:
+          type: string
+          enum: [free, premium, pro]
+          description: "Minimum tier required to access this chapter"
+      required: [id, title, tier]
+
+    ChapterFull:
+      type: object
+      description: "A complete chapter with full text content for teaching."
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          description: "2-sentence summary"
+        content:
+          type: string
+          description: "Full chapter text — use this to teach the student"
+        order_num:
+          type: integer
+          description: "Chapter sequence number (1–10)"
+        tier:
+          type: string
+          enum: [free, premium, pro]
+      required: [id, title, content, order_num, tier]
+
+    AccessResult:
+      type: object
+      description: "Result of an access tier check."
+      properties:
+        allowed:
+          type: boolean
+          description: "True if the student's tier allows access to the chapter"
+        required_tier:
+          type: string
+          enum: [free, premium, pro]
+          description: "Minimum tier needed (present when allowed is false)"
+        user_tier:
+          type: string
+          enum: [free, premium, pro]
+          description: "Student's current tier (present when allowed is false)"
+      required: [allowed]
+
+    QuizQuestion:
+      type: object
+      description: "A single multiple-choice quiz question. correct_answer is never included."
+      properties:
+        id:
+          type: integer
+          description: "Unique question ID — use this when submitting the answer"
+        chapter_id:
+          type: integer
+        question:
+          type: string
+          description: "The question text to present to the student"
+        option_a:
+          type: string
+        option_b:
+          type: string
+        option_c:
+          type: string
+        option_d:
+          type: string
+        order_num:
+          type: integer
+          description: "Question order within the chapter (1–5)"
+      required: [id, chapter_id, question, option_a, option_b, option_c, option_d, order_num]
+
+    SubmitResult:
+      type: object
+      description: "Result after submitting a quiz answer."
+      properties:
+        correct:
+          type: boolean
+          description: "Whether the student's answer was correct"
+        correct_answer:
+          type: string
+          enum: [A, B, C, D]
+          description: "The correct answer — reveal this to the student after they answer"
+        explanation:
+          type: string
+          description: "Educational explanation — always show this after the answer"
+        score:
+          type: integer
+          description: "Final percentage score (0–100). Only present after the 5th question."
+      required: [correct, correct_answer, explanation]
+
+    ProgressRecord:
+      type: object
+      description: "Complete progress record for a student."
+      properties:
+        tier:
+          type: string
+          enum: [free, premium, pro]
+          description: "Student's current subscription tier"
+        streak_days:
+          type: integer
+          description: "Number of consecutive days with at least one chapter completed"
+        avg_score:
+          type: number
+          description: "Average quiz score across all completed chapters (0–100)"
+        chapters_completed:
+          type: integer
+          description: "Number of chapters the student has completed"
+        chapters:
+          type: array
+          description: "Per-chapter progress details"
+          items:
+            type: object
+            properties:
+              chapter_id:
+                type: integer
+              title:
+                type: string
+              completed:
+                type: boolean
+              score:
+                type: integer
+                description: "Quiz score for this chapter (null if not attempted)"
+              attempts:
+                type: integer
+      required: [tier, streak_days, avg_score, chapters_completed, chapters]
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required: [detail]
+
+    TierErrorResponse:
+      type: object
+      description: "403 response when chapter tier exceeds student tier"
+      properties:
+        detail:
+          type: string
+        required_tier:
+          type: string
+          enum: [free, premium, pro]
+        user_tier:
+          type: string
+          enum: [free, premium, pro]
+        message:
+          type: string
+      required: [detail, required_tier, user_tier, message]
