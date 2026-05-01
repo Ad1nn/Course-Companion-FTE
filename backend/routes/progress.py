@@ -30,8 +30,8 @@ def _calculate_streak(completed_at_list: list[str]) -> int:
 
 @router.get("/{user_id}", response_model=ProgressResponse)
 def get_progress(user_id: str, user: AuthUser = Depends(get_current_user)):
-    user_row = supabase.table("users").select("tier").eq("id", user_id).single().execute()
-    if not user_row.data:
+    user_row = supabase.table("users").select("tier").eq("id", user_id).maybe_single().execute()
+    if not user_row or not user_row.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     progress_rows = (

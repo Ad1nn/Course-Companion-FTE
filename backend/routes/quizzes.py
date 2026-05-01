@@ -28,8 +28,8 @@ def submit_answer(quiz_id: int, body: SubmitRequest, user: AuthUser = Depends(ge
     if body.answer.upper() not in VALID_ANSWERS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Answer must be A, B, C, or D")
 
-    question = supabase.table("quizzes").select("*").eq("id", quiz_id).single().execute()
-    if not question.data:
+    question = supabase.table("quizzes").select("*").eq("id", quiz_id).maybe_single().execute()
+    if not question or not question.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
 
     q = question.data

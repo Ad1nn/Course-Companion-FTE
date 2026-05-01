@@ -47,7 +47,7 @@ def login(body: AuthLoginRequest):
     user_id = result.user.id
     access_token = result.session.access_token
 
-    user_result = supabase.table("users").select("tier").eq("id", user_id).single().execute()
-    tier = user_result.data["tier"] if user_result.data else "free"
+    user_result = supabase.table("users").select("tier").eq("id", user_id).maybe_single().execute()
+    tier = user_result.data["tier"] if (user_result and user_result.data) else "free"
 
     return AuthLoginResponse(access_token=access_token, user_id=user_id, tier=tier)
