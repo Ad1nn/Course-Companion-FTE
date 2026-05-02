@@ -36,13 +36,11 @@ export default function ChapterPage() {
 
     async function load() {
       try {
-        const [allChs, access, progress] = await Promise.all([
+        const [allChs, access] = await Promise.all([
           getChapters(session!.access_token),
           checkAccess(session!.access_token, chapterId),
-          getProgress(session!.access_token, session!.user_id),
         ])
         setAllChapters(allChs)
-        setCompletedIds(progress.chapters.filter((c) => c.completed).map((c) => c.chapter_id))
 
         if (!access.allowed) {
           setLockedTier(access.required_tier || 'premium')
@@ -53,6 +51,11 @@ export default function ChapterPage() {
       } catch {
         setError('Failed to load chapter. Please try again.')
       }
+
+      // Progress is optional — load separately so it never blocks content
+      getProgress(session!.access_token, session!.user_id)
+        .then((p) => setCompletedIds(p.chapters.filter((c) => c.completed).map((c) => c.chapter_id)))
+        .catch(() => {/* sidebar checkmarks unavailable — not critical */})
     }
 
     load()

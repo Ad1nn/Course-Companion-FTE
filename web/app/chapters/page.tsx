@@ -15,15 +15,14 @@ export default function ChaptersPage() {
 
   useEffect(() => {
     if (!session) return
-    Promise.all([
-      getChapters(session.access_token),
-      getProgress(session.access_token, session.user_id),
-    ])
-      .then(([chs, progress]) => {
-        setChapters(chs)
-        setCompletedIds(progress.chapters.filter((c) => c.completed).map((c) => c.chapter_id))
-      })
+
+    getChapters(session.access_token)
+      .then(setChapters)
       .catch(() => setError('Failed to load chapters. Please refresh.'))
+
+    getProgress(session.access_token, session.user_id)
+      .then((p) => setCompletedIds(p.chapters.filter((c) => c.completed).map((c) => c.chapter_id)))
+      .catch(() => {/* progress is optional — don't block chapters */})
   }, [session])
 
   if (loading || !session) return null
