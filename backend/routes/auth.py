@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
-from database import supabase
+from supabase import create_client
+from database import supabase, SUPABASE_URL, SUPABASE_SERVICE_KEY
 from models import AuthRegisterRequest, AuthLoginRequest, AuthRegisterResponse, AuthLoginResponse
 
 router = APIRouter()
@@ -36,8 +37,13 @@ def register(body: AuthRegisterRequest):
 
 @router.post("/login", response_model=AuthLoginResponse)
 def login(body: AuthLoginRequest):
+    # Use an isolated client so sign_in_with_password never overwrites the
+    # service-role singleton's Authorization header (which would flip all
+    # subsequent PostgREST queries from service_role → authenticated role,
+    # causing RLS to block every table query).
     try:
-        result = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+        _auth = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        result = _auth.auth.sign_in_with_password({"email": body.email, "password": body.password})
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
