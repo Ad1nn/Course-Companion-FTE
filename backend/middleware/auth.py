@@ -27,6 +27,15 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
     if not result or not result.data:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        # Auth token is valid but no profile row — auto-create with free tier
+        try:
+            supabase.table("users").insert({
+                "id": user_id,
+                "email": response.user.email,
+                "tier": "free",
+            }).execute()
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user profile")
+        return AuthUser(user_id=user_id, tier="free")
 
     return AuthUser(user_id=user_id, tier=result.data["tier"])
