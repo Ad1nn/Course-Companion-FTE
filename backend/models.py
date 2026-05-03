@@ -106,6 +106,29 @@ class AdminUpgradeRequest(BaseModel):
     user_id: str
     tier: str  # 'free' | 'premium' | 'pro'
 
+# ── Hybrid LLM models (Phase 5) ───────────────────────────────────────────────
+
+class AdaptivePathRequest(BaseModel):
+    user_id: str
+
+class AdaptivePathResponse(BaseModel):
+    recommended_next_chapter_id: int
+    reasoning: str
+    weak_areas: list[str]
+    estimated_study_time_minutes: int
+
+class AssessRequest(BaseModel):
+    user_id: str
+    chapter_id: int
+    question: str
+    answer: str
+
+class AssessResponse(BaseModel):
+    score: int  # 0–100
+    feedback: str
+    strengths: list[str]
+    areas_to_improve: list[str]
+
 # ── Shared auth user context ──────────────────────────────────────────────────
 
 class AuthUser(BaseModel):
