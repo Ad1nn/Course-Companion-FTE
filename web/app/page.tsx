@@ -23,7 +23,7 @@ const tiers = [
     chapters: 'Chapters 1–7',
     color: 'border-violet-500',
     cta: 'Go Premium',
-    href: '/signup',
+    href: '/upgrade?tier=premium',
     highlight: true,
   },
   {
@@ -32,7 +32,7 @@ const tiers = [
     chapters: 'All 10 chapters',
     color: 'border-amber-400',
     cta: 'Go Pro',
-    href: '/signup',
+    href: '/upgrade?tier=pro',
     highlight: false,
   },
 ]

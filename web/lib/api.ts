@@ -127,6 +127,13 @@ export async function apiRegister(email: string, password: string): Promise<{ us
   return res.json()
 }
 
+export async function apiUpgradeTier(token: string, tier: Tier): Promise<{ user_id: string; tier: Tier }> {
+  return request('/auth/upgrade-tier', token, {
+    method: 'POST',
+    body: JSON.stringify({ tier }),
+  })
+}
+
 export async function apiLogin(email: string, password: string): Promise<{ access_token: string; user_id: string; tier: Tier }> {
   const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { apiLogin } from '@/lib/api'
 import { setSession } from '@/lib/auth'
 
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/dashboard'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +21,7 @@ export default function LoginPage() {
     try {
       const data = await apiLogin(email, password)
       setSession({ access_token: data.access_token, user_id: data.user_id, email, tier: data.tier })
-      router.push('/dashboard')
+      router.push(redirect)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid email or password.')
     } finally {

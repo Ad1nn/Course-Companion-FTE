@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import create_client
 from database import supabase, SUPABASE_URL, SUPABASE_SERVICE_KEY
-from models import AuthRegisterRequest, AuthLoginRequest, AuthRegisterResponse, AuthLoginResponse
+from middleware.auth import get_current_user
+from models import AuthRegisterRequest, AuthLoginRequest, AuthRegisterResponse, AuthLoginResponse, AuthUser
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -57,3 +59,15 @@ def login(body: AuthLoginRequest):
     tier = user_result.data["tier"] if (user_result and user_result.data) else "free"
 
     return AuthLoginResponse(access_token=access_token, user_id=user_id, tier=tier)
+
+
+class UpgradeTierRequest(BaseModel):
+    tier: str  # 'premium' | 'pro'
+
+
+@router.post("/upgrade-tier")
+def upgrade_tier(body: UpgradeTierRequest, user: AuthUser = Depends(get_current_user)):
+    if body.tier not in ("premium", "pro"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tier. Must be 'premium' or 'pro'.")
+    supabase.table("users").update({"tier": body.tier}).eq("id", user.user_id).execute()
+    return {"user_id": user.user_id, "tier": body.tier}
