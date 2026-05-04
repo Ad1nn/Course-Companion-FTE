@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/useAuth'
@@ -23,7 +23,7 @@ const TIER_DETAILS: Record<string, { label: string; price: string; chapters: str
   },
 }
 
-export default function UpgradePage() {
+function UpgradeContent() {
   const { session, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -124,5 +124,13 @@ export default function UpgradePage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function UpgradePage() {
+  return (
+    <Suspense>
+      <UpgradeContent />
+    </Suspense>
   )
 }
