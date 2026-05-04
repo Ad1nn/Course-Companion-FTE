@@ -17,8 +17,14 @@ from models import (
 
 router = APIRouter()
 
-_openai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 _MODEL = "gpt-4o"
+
+
+def _get_openai() -> OpenAI:
+    key = os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise HTTPException(status_code=503, detail="OpenAI API key not configured.")
+    return OpenAI(api_key=key)
 
 
 def _require_pro(user: AuthUser) -> None:
@@ -111,7 +117,7 @@ Respond with ONLY a JSON object (no markdown fences):
   "estimated_study_time_minutes": <integer>
 }}"""
 
-    response = _openai.chat.completions.create(
+    response = _get_openai().chat.completions.create(
         model=_MODEL,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=512,
@@ -167,7 +173,7 @@ Respond with ONLY a JSON object (no markdown fences):
   "areas_to_improve": ["<specific gap or misconception>", ...]
 }}"""
 
-    response = _openai.chat.completions.create(
+    response = _get_openai().chat.completions.create(
         model=_MODEL,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=512,
