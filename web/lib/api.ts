@@ -127,6 +127,40 @@ export async function apiRegister(email: string, password: string): Promise<{ us
   return res.json()
 }
 
+export interface AdaptivePathResult {
+  recommended_next_chapter_id: number
+  reasoning: string
+  weak_areas: string[]
+  estimated_study_time_minutes: number
+}
+
+export interface AssessResult {
+  score: number
+  feedback: string
+  strengths: string[]
+  areas_to_improve: string[]
+}
+
+export async function getAdaptivePath(token: string, userId: string): Promise<AdaptivePathResult> {
+  return request('/hybrid/adaptive-path', token, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  })
+}
+
+export async function assessAnswer(
+  token: string,
+  userId: string,
+  chapterId: number,
+  question: string,
+  answer: string,
+): Promise<AssessResult> {
+  return request('/hybrid/assess', token, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, chapter_id: chapterId, question, answer }),
+  })
+}
+
 export async function apiUpgradeTier(token: string, tier: Tier): Promise<{ user_id: string; tier: Tier }> {
   return request('/auth/upgrade-tier', token, {
     method: 'POST',

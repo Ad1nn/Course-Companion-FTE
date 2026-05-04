@@ -119,6 +119,14 @@ export default function ChapterPage() {
                   >
                     Start Quiz →
                   </Link>
+                  {session.tier === 'pro' && (
+                    <Link
+                      href={`/assess/${chapterId}`}
+                      className="rounded-lg bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+                    >
+                      AI Assessment ✦
+                    </Link>
+                  )}
                   {nextChapter && TIER_ORDER[session.tier] >= TIER_ORDER[nextChapter.tier] && (
                     <Link
                       href={`/chapters/${nextChapter.id}`}
