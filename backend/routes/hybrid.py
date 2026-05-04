@@ -12,6 +12,8 @@ from models import (
     AdaptivePathResponse,
     AssessRequest,
     AssessResponse,
+    GenerateQuestionRequest,
+    GenerateQuestionResponse,
     AuthUser,
 )
 
@@ -58,6 +60,47 @@ def _parse_json(text: str) -> dict:
         text = text.split("\n", 1)[-1]
         text = text.rsplit("```", 1)[0]
     return json.loads(text.strip())
+
+
+@router.post("/generate-question", response_model=GenerateQuestionResponse)
+def generate_question(body: GenerateQuestionRequest, user: AuthUser = Depends(get_current_user)):
+    _require_pro(user)
+
+    ch_result = (
+        supabase.table("chapters")
+        .select("title, description, content")
+        .eq("id", body.chapter_id)
+        .maybe_single()
+        .execute()
+    )
+    chapter = ch_result.data or {}
+    chapter_title = chapter.get("title", f"Chapter {body.chapter_id}")
+    chapter_desc = chapter.get("description", "")
+    # Use first 1500 chars of content for context without blowing token budget
+    chapter_content = (chapter.get("content") or "")[:1500]
+
+    prompt = f"""You are an expert tutor for a course on Agentic AI development.
+
+Chapter: {chapter_title}
+{f'Description: {chapter_desc}' if chapter_desc else ''}
+Content excerpt:
+{chapter_content}
+
+Generate ONE thought-provoking open-ended question about this chapter that tests deep understanding.
+The question should require a paragraph-length answer, not just yes/no.
+Return ONLY the question text, nothing else."""
+
+    response = _get_openai().chat.completions.create(
+        model=_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150,
+        temperature=0.7,
+    )
+
+    usage = response.usage
+    _log_cost(body.user_id, "generate-question", usage.prompt_tokens, usage.completion_tokens)
+
+    return GenerateQuestionResponse(question=response.choices[0].message.content.strip())
 
 
 @router.post("/adaptive-path", response_model=AdaptivePathResponse)

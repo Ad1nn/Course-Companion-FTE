@@ -141,6 +141,13 @@ export interface AssessResult {
   areas_to_improve: string[]
 }
 
+export async function generateQuestion(token: string, userId: string, chapterId: number): Promise<{ question: string }> {
+  return request('/hybrid/generate-question', token, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, chapter_id: chapterId }),
+  })
+}
+
 export async function getAdaptivePath(token: string, userId: string): Promise<AdaptivePathResult> {
   return request('/hybrid/adaptive-path', token, {
     method: 'POST',

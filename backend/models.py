@@ -108,6 +108,13 @@ class AdminUpgradeRequest(BaseModel):
 
 # ── Hybrid LLM models (Phase 5) ───────────────────────────────────────────────
 
+class GenerateQuestionRequest(BaseModel):
+    user_id: str
+    chapter_id: int
+
+class GenerateQuestionResponse(BaseModel):
+    question: str
+
 class AdaptivePathRequest(BaseModel):
     user_id: str
 

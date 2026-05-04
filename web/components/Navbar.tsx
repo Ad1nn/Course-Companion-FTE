@@ -38,6 +38,9 @@ export default function Navbar() {
               <Link href="/adaptive" className="text-sm font-medium text-amber-600 hover:text-amber-700">
                 AI Tutor ✦
               </Link>
+              <Link href="/profile" className="text-sm font-medium text-gray-600 hover:text-violet-700">
+                Profile
+              </Link>
               <button
                 onClick={handleLogout}
                 className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
